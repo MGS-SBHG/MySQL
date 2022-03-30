@@ -1,0 +1,267 @@
+-- 01 simple subselect
+-- database: world
+
+/*
+A subselect is effectively a nested SELECT statement. 
+In SQL, the result of a SELECT statement is effectively a table. 
+		usually just exists in memory 
+		but it can always be used as you would use a table. 
+
+	Because of this, a SELECT statement may be used as 
+		a data source for another SELECT statement. 
+			called a "subselect" or sometimes a "subquery" 
+*/
+
+-- create a temp table t
+DROP TABLE IF EXISTS t;
+CREATE TABLE t ( a VARCHAR(6), b VARCHAR(6) ) DEFAULT CHARSET=utf8;
+
+-- State Codes with numbers; Country Codes with numbers
+INSERT INTO t VALUES ( 'NY0123', 'US4567' );
+INSERT INTO t VALUES ( 'AZ9437', 'GB1234' );
+INSERT INTO t VALUES ( 'CA1279', 'FR5678' );
+
+SELECT * FROM t;
+
+-- a	  b
+-- NY0123 US4567
+-- AZ9437 GB1234
+-- CA1279 FR5678
+
+
+-- Parse the codes
+SELECT SUBSTR(a, 1, 2) AS State, SUBSTR(a, 3) AS SCode, SUBSTR(b, 1, 2) AS Country,
+  SUBSTR(b, 3) AS CCode FROM t;
+
+-- State SCode Country CCode
+-- NY	0123 	US	4567
+-- AZ	9437 	GB	1234
+-- CA	1279 	FR	5678
+
+
+-- grab CCode 
+-- SELECT SUBSTR as data set as alias "ss"
+-- join to the Country table
+SELECT co.Name, ss.CCode FROM (
+    SELECT SUBSTR(a, 1, 2) AS State, SUBSTR(a, 3) AS SCode,
+      SUBSTR(b, 1, 2) AS Country, SUBSTR(b, 3) AS CCode FROM t
+  ) AS ss
+  JOIN Country AS co
+    ON co.Code2 = ss.Country
+;
+
+-- resulting table:
+-- Name			Code
+-- France		5678
+-- United Kingdom	1234
+-- United States	4567
+
+/*
+subselects are a convenient way of making your data available in different forms 
+while keeping your database schema simple and well organized. 
+*/
+
+
+DROP TABLE t;
+
+
+
+-- 02 searching within a result set
+-- using a sub select to provide a list of rows to search for in a table.
+-- database: album
+
+-- album tracks that are <= 90 seconds
+SELECT DISTINCT album_id FROM track WHERE duration <= 90;
+
+-- album_id
+-- 11
+-- 13
+
+
+/*
+use the results for track ids 
+to see the rows from the album table with those IDs. 
+*/
+SELECT * FROM album
+  WHERE id IN (SELECT DISTINCT album_id FROM track WHERE duration <= 90)
+;
+
+-- id	title			artist			label		released
+-- 11	Hendrix in the West	Jimi Hendrix		Polydor		1972-01-00
+-- 13	Birds of Fire		Mahavishnu Orchestra	Columbia	1973-03-00
+
+
+
+/*
+create a join query to get the full details of the album and tracks for the entire albums for these two IDs.
+
+A will represent the album table, 
+T will represent the track table. 
+
+title as album,
+artist from the album table, 
+track number from the track table as sequence, 
+title from the track table, and 
+duration from the track table as seconds. 
+
+FROM album AS a 
+and JOIN track AS t. 
+	joining on, t.album_id equals a.id.
+*/
+
+SELECT a.title AS album, a.artist, t.track_number AS seq, t.title, t.duration AS secs
+  FROM album AS a
+  JOIN track AS t
+    ON t.album_id = a.id
+  WHERE a.id IN (SELECT DISTINCT album_id FROM track WHERE duration <= 90)
+  ORDER BY a.title, t.track_number
+;
+
+--  I have these two albums and all of their tracks 
+--  and all of their data from both of these tables.
+-- album 		artist			seq	title	secs
+-- Birds of Fire	Mahavishnu Orchestra	1	Birds	350
+...
+-- Hendrix in the West	Jimi Hendrix		1	Johnny	285
+
+
+
+-- use SubSelect as the Join table
+--	SELECT album_id, track_number, duration, title
+--      FROM track
+--      WHERE duration <= 90
+
+SELECT a.title AS album, a.artist, t.track_number AS seq, t.title, t.duration AS secs
+  FROM album AS a
+  JOIN (
+    SELECT album_id, track_number, duration, title
+      FROM track
+      WHERE duration <= 90
+  ) AS t
+    ON t.album_id = a.id
+  ORDER BY a.title, t.track_number
+;
+
+-- tracks less than 90 seconds
+-- album 		artist			seq	title		secs
+-- Birds of Fire	Mahavishnu Orchestra	4	Saphire		24
+-- Hendrix in the West	Jimi Hendrix		6	Sgt.Peppers	76
+
+
+/*
+A sub select can be used anywhere you would use a table, 
+because the result of a select is effectively another table itself.
+*/
+
+
+
+-- 03 Creating a view
+-- MySQL supports views - can save a query as a view 
+--	and use that view like you would a subselect. 
+-- database: album
+
+-- results with duration in "m"inutes and "s"econds
+SELECT id, album_id, title, track_number, duration DIV 60 AS m, duration MOD 60 AS s
+  FROM track;
+
+
+-- Create that as a View
+-- CREATE VIEW viewname AS
+--	subSelect;
+
+CREATE VIEW trackView AS
+  SELECT id, album_id, title, track_number, duration DIV 60 AS m, duration MOD 60 AS s
+    FROM track
+;
+
+
+-- SELECT FROM a viewname;
+-- 	like a table or subSELECT
+
+
+-- same result with duration in "m"inutes and "s"econds
+SELECT * FROM trackView;
+
+
+-- results in Joined table with
+-- columns "album", "artist", "seq", "title", "m", "s" 
+-- the trackView has that "m"inutes and "s"econds
+SELECT a.title AS album, a.artist, t.track_number AS seq, t.title, t.m, t.s
+  FROM album AS a
+  JOIN trackView AS t
+    ON t.album_id = a.id
+  ORDER BY a.title, t.track_number
+;
+
+-- drops Only the View Not the underlying table
+DROP VIEW IF EXISTS trackView;
+
+
+
+
+-- 04 Joined view
+-- A view can be a simple straight query 
+--	or a more complex joined query. 
+-- database: album
+
+
+-- a simple joined query with artist, album, track, track number, minutes and seconds
+SELECT a.artist AS artist,
+    a.title AS album,
+    t.title AS track,
+    t.track_number AS trackno,
+    t.duration DIV 60 AS m,
+    t.duration MOD 60 AS s
+  FROM track AS t
+  JOIN album AS a
+    ON a.id = t.album_id
+;
+
+-- name the VIEW as joinedAlbum 
+CREATE VIEW joinedAlbum AS
+  SELECT a.artist AS artist,
+      a.title AS album,
+      t.title AS track,
+      t.track_number AS trackno,
+      t.duration DIV 60 AS m,
+      t.duration MOD 60 AS s
+    FROM track AS t
+    JOIN album AS a
+      ON a.id = t.album_id
+;
+
+-- simply run the VIEW
+SELECT * FROM joinedAlbum;
+
+-- query an artist
+SELECT * FROM joinedAlbum WHERE artist = 'Jimi Hendrix';
+
+
+/*
+ SELECT artist, album, track, trackno, 
+
+concatenating with separator the minutes and seconds 
+	padded to two places with a leading zero
+
+create the minutes and seconds as a duration, 
+	it looks like minutes and seconds in normal time notation. 
+	mm:ss
+*/
+
+SELECT artist, album, track, trackno, 
+  CONCAT_WS(':', m, LPAD(s, 2, '0')) AS duration
+  FROM joinedAlbum
+;
+
+-- DROP VIEW and the name of the view. 
+-- it does Not delete the underlying tables, it just deletes the view. 
+DROP VIEW IF EXISTS joinedAlbum;
+
+/*
+Any select statement can be saved as a view. 
+Views are a fairly standard feature across all systems and platforms. 
+MySQL conforms to the SQL standard syntax for creating and dropping views.
+*/
+
+
+
