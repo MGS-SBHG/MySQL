@@ -1,0 +1,243 @@
+
+-- 02 Numerics
+-- database: scratch
+
+DESCRIBE numerics;
+SELECT * FROM numerics;
+SELECT da + db, fa + fb FROM numerics;
+SELECT da + db = .3 FROM numerics;
+SELECT fa + fb = .3 FROM numerics;
+SELECT fa + fb FROM numerics;
+
+
+
+
+-- 04 Date and Time
+-- database: scratch
+
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+  id SERIAL,
+  stamp TIMESTAMP,
+  note VARCHAR(255)
+);
+INSERT INTO test ( note ) VALUES ( 'Pablo Picasso' );
+INSERT INTO test ( note ) VALUES ( 'Henri Matisse' );
+INSERT INTO test ( note ) VALUES ( 'Vincent Van Gogh' );
+
+DESCRIBE test;
+// Field 	Type	   	Null	Default		  	Extra 
+// stamp 	timestamp 	NO 	CURRENT_TIMESTAMP 	on update_CURRENT_TIMESTAMP
+
+
+SHOW CREATE TABLE test;
+'Stamp' timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+SELECT * FROM test;
+
+
+UPDATE test SET note = 'Jackson Pollock' WHERE id = 2;
+SELECT * FROM test;
+
+// replaces Henri Matisse with Jackson Pollock
+// id	stamp			note
+// 2	2014-03-12 03:35:59	Jackson Pollock
+
+
+DROP TABLE IF EXISTS test;
+
+
+// Time Zone Support
+// SHOW VARIABLES is MySQL-specific
+SHOW VARIABLES LIKE '%time_zone%';
+
+// Variable_name	Value
+// system_time_zone	MST	setup on computer O/S
+// time_zone		UTC	setup on SID app
+
+SELECT NOW();
+// current time stamp in UTC
+
+
+SET time_zone = 'US/Eastern';
+SHOW VARIABLES LIKE '%time_zone%';
+// time_zone US/Eastern
+
+SELECT NOW();
+// current time stamp in US/Eastern
+
+
+
+-- 05 BIT
+-- database: scratch
+
+DROP TABLE IF EXISTS test;
+
+/*
+The bit type is a convenient compact storage type 
+for small values that can aggregate to take up as little space as possible.
+a 3-bit column and a 5-bit column; 
+these 2 columns take up 8 bits. 
+all be packed into one 8 bit unit; into one 8 bit byte. 
+The Bit type is designed to conserve space as much as possible. 
+Can define several columns of various bit lengths in a single table, 
+and MySQL will pack these into as few units of storage as possible, 
+usually on 8-bit boundaries.
+*/
+CREATE TABLE test ( id SERIAL, a BIT(3), b BIT(5) );
+
+/*
+the largest decimal number you can express in three bits is a 7
+the largest number that you can express in 5 bits is a 31.
+*/
+-- add values
+INSERT INTO test ( a, b ) VALUES ( 5, 29 );
+// results in 1 5 29
+
+INSERT INTO test ( a, b ) VALUES ( 6, 30 );
+// results in 2 6 30
+ 		
+INSERT INTO test ( a, b ) VALUES ( 7, 31 );
+// results in 3 7 31
+
+INSERT INTO test ( a, b ) VALUES ( 8, 32 );
+// results in 4 7 31
+
+INSERT INTO test ( a, b ) VALUES ( 9, 33 );
+// results in 5 7 31
+
+INSERT INTO test ( a, b ) VALUES ( 199, 199 );
+// results in 6 7 31
+
+
+SELECT * FROM test;
+
+DROP TABLE IF EXISTS test;
+
+-- 06 BOOLEAN
+-- MySQL does Not have a Boolean type per se. 
+-- has a Boolean keyword which maps to a TinyInt used as a Boolean type.
+-- database: scratch
+
+
+DROP TABLE IF EXISTS test;
+
+CREATE TABLE test ( a BOOLEAN, b BOOLEAN );
+-- or
+CREATE TABLE test ( a BOOL, b BOOL);
+
+-- TRUE alias for 1; FALSE alias for 0
+INSERT INTO test VALUES ( TRUE, FALSE );
+
+SELECT * FROM test;
+-- a b
+-- 1 0
+
+DESCRIBE test;
+-- Field  Type  	Null  Key  Default Extra
+-- a	   tinint(1)	YES 	   NULL
+-- b	   tinint(1)	YES 	   NULL
+
+SHOW CREATE TABLE test;
+-- Table Create Table 
+-- test	 CREATE TABLE 'test'('a' tinyint(1) DEFAULT NULL, 'b' tinyint(1) DEFAULT NULL ) ENGINE=InnoDB DEFAULT CHARSET=latin1
+
+
+SELECT a AND b FROM test;
+-- a AND b
+-- 0
+
+SELECT a OR b FROM test;
+-- a OR b
+-- 1
+
+DROP TABLE IF EXISTS test;
+
+
+
+-- 07 ENUM and SET
+-- MySQL provides two unique types that work from lists of strings. 
+-- database: scratch
+
+-- ENUM
+--  if you know you're going to have a limited number of possible values in a column, 
+--  it can be much more economical to store an index as in an ENUM 
+--  than many copies of the same string. 
+
+
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+  id SERIAL,
+  a ENUM( 'Pablo', 'Henri', 'Jackson' )
+);
+// inserts the index number of the ENUM
+INSERT INTO test ( a ) VALUES ( 'Pablo' );
+INSERT INTO test ( a ) VALUES ( 'Henri' );
+INSERT INTO test ( a ) VALUES ( 'Jackson' );
+INSERT INTO test ( a ) VALUES ( 1 );
+INSERT INTO test ( a ) VALUES ( 2 );
+INSERT INTO test ( a ) VALUES ( 3 );
+
+SELECT * FROM test;
+
+
+-- id a
+-- 1 Pablo
+-- 2 Henri
+-- 3 Jackson 
+-- 4 Pablo
+-- 5 Henri
+-- 6 Jackson 
+
+
+-- SET
+-- if you need to store more than one from a set of possible values.
+-- A SET can be economical as well. 
+-- And a SET may also be useful for storing flags and State indicators.
+
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+  id SERIAL,
+  a SET( 'Pablo', 'Henri', 'Jackson' ) -- 3 bits are defined here
+);
+-- each bit represents a value in the Set
+
+
+INSERT INTO test ( a ) VALUES ( 'Pablo' );
+-- 1 Pablo
+
+INSERT INTO test ( a ) VALUES ( 'Henri' );
+-- 2 Henri
+
+INSERT INTO test ( a ) VALUES ( 'Jackson' );
+-- 3 Jackson
+
+INSERT INTO test ( a ) VALUES ( 'Pablo,Jackson,Henri,Henri,Henri' );
+-- 4 
+
+INSERT INTO test ( a ) VALUES ( 1 );
+-- 5 Pablo
+
+INSERT INTO test ( a ) VALUES ( 2 );
+-- 6 Henri
+
+INSERT INTO test ( a ) VALUES ( 3 );
+-- 7 Pablo,Henri
+
+INSERT INTO test ( a ) VALUES ( 4 );
+-- Jackson
+
+INSERT INTO test ( a ) VALUES ( 5 );
+-- Pablo,Jackson 
+
+INSERT INTO test ( a ) VALUES ( 6 );
+-- Henri,Jackson
+
+INSERT INTO test ( a ) VALUES ( 7 );
+-- Pablo,Henri,Jackson
+
+
+SELECT COUNT(*) FROM test;
+SELECT * FROM test;
+DESCRIBE test;
+SHOW CREATE TABLE test;

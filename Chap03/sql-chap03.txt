@@ -1,0 +1,724 @@
+/*
+Mac OS
+under Applications. 
+XAMPP > files > var> MySQL 
+
+Database files are locked
+Right-click > more info;
+	click the lock on lower right corner
+	type my password
+	click + and add myself
+	under privilege "Read & Write"
+		click db.opt is the meta data for the db
+
+Windows:
+C:xampp > mysql > data 
+
+database files are openable: album, scratch, world
+
+*/
+
+-- 01 CREATE DATABASE
+-- database: none
+
+CREATE DATABASE foo; -- will create folder in file structure
+
+-- use the database
+USE foo;
+
+-- create table foo
+CREATE TABLE foo ( a INT, b TEXT );
+
+-- insert a row
+INSERT INTO foo VALUES ( 1, 'foo' );
+
+-- display the data
+SELECT * FROM foo;
+
+-- 	in file structure, "foo.frm" and "foo.ibd" are created 
+
+-- delete the table
+DROP TABLE foo;
+
+-- 	in file structure, "foo.frm" and "foo.ibd" are gone 
+
+-- delete the db
+DROP DATABASE foo;
+
+-- 	in file structure, "foo" folder is gone 
+
+
+
+
+-- 02 CREATE TABLE
+-- database: scratch
+
+/*
+Just like a database contains tables, a table contains the rows and columns for a given set of data. The table definition contains all of the details of a dataset. Because of this, the CREATE TABLE statement has a lot more options than the CREATE DATABASE statement. 
+*/
+
+-- table definition
+-- each line column definition
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+    id INTEGER,
+    name VARCHAR(255),
+    address VARCHAR(255),
+    city VARCHAR(255),
+    state CHAR(2),
+    zip CHAR(10)
+);
+
+
+-- MySQL only statement:
+DESCRIBE test;
+
+-- all tables in the DB
+SHOW TABLE STATUS;
+
+
+-- SHOW TABLE STATUS LIKE 'name of the table;
+SHOW TABLE STATUS LIKE 'test;
+
+/*
+a few things about the table, 
+	the name of the table, 
+	the data base engine used, the InnoDB. Database engine 
+		the default form modern versions of MySQL. 
+		versions later than 5.5 defaults to InnoDB. 
+	the create time of the table, 
+	the collation "latin1_swedish_ci" 
+
+		"ci" stands for case insensitive - means that lowercase and uppercase letters are treated the same in sorting and searching. 
+		"latin1" is closely related to the old ASCII standard. 
+			Not the modern UTF standard. 
+		
+		the language defaults to "swedish" 
+			in most MySQL implementations. 
+			probably has to do with how and where it was created. 
+*/
+
+
+-- gives the CREATE TABLE statement with
+-- 	DEFAULT NULLs
+-- 	ENGINE = InnoDB
+-- 	DEFAULT CHARSET=latin1
+
+SHOW CREATE TABLE test;
+
+
+-- change DEFAULT CHARSET=utf8;
+-- utf8 has more international characters
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+    id INTEGER,
+    name VARCHAR(255),
+    address VARCHAR(255),
+    city VARCHAR(255),
+    state CHAR(2),
+    zip CHAR(10)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+SHOW CREATE TABLE test;
+
+-- utf8_general_ci
+SHOW TABLE STATUS;
+
+/*
+it's a good idea to always specify 
+	the database engine 
+	the default character set. 
+
+MyISAM was the original database engine for MySQL. 
+	not transactional; not very fast for large data sets.
+
+InnoDB - the database engine default for MySQL 5.5 and later. 
+	has been under development for a number of years; just recently become the default. 
+	fully asset compliant - it supports transactions can be committed and rolled back. 	has better durability and consistency. 
+	got much better speed with larger datasets. 
+	definitely a superior engine for most purposes.
+
+*/
+
+-- deletes the table
+-- if does Not exist, 
+--	SQLSTATE(42505): Base table or view not found: 1051 Unknown table 'db.table_name' 
+DROP TABLE test;
+
+-- will Not give an error even it table does Not exist
+DROP TABLE IF EXISTS test;
+
+
+
+
+-- 03 indexes
+-- database: scratch
+
+/*
+
+An index is a data structure that optimizes searches, sequential access, insertions, and deletions. Like many database systems MySQL uses indexes to improve performance, and to support features that require ordered data. An index keeps a logical order to a set of data. This is a cornerstone of relational database technology. If I want to find a particular row in a table, access to a fast lookup of a unique index key is going to make that very easy to do.
+
+Internally, the data base organizes its indexes as B-trees. Most data base indexes, including those used by My SQL, use a form of B-tree to organize the data. As an example of how this works, here's a simple B-tree for looking up letters of an alphabet. Without a B-tree, if I just had a list of letters and I wanted to find the letter u, I would have to start at one end of the list, compare the first letter to the letter u. And then if it didn't match I would look at the next letter and compare it to the letter u.
+
+And on and on until I find the letter I'm looking for. This could take up to 26 steps, assuming equal distribution of the letters it would average 13 steps. With a B-tree index, I start with the node at the top of the tree, and compare it to the letter u. If the letter u is less than the node I continue on the left side of the tree. If it's greater than the node, I continue to the right side of the tree. And with a B-Tree, I have a maximum of four steps before I find the letter I'm looking for. This is a very efficient structure for searching, as well for inserting and deleting nodes.
+*/
+
+-- create table with 3 columns
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+    id INTEGER,
+    a VARCHAR(255),
+    b VARCHAR(255)
+);
+
+-- insert data rows
+INSERT INTO TEST ( id, a, b ) VALUES ( 1, 'one', 'two' );
+INSERT INTO TEST ( id, a, b ) VALUES ( 2, 'two', 'three' );
+INSERT INTO TEST ( id, a, b ) VALUES ( 3, 'three', 'four' );
+
+-- show the data
+SELECT * FROM test;
+
+-- show table structure
+DESCRIBE test;
+
+
+SHOW INDEXES FROM test;
+
+
+-- create 1 index
+-- INDEX keyword with (column to index)
+--     INDEX(a),
+
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+    id INTEGER,
+    a VARCHAR(255),
+    b VARCHAR(255),
+    INDEX ab (a, b)
+    INDEX(a),
+    INDEX(b)
+);
+
+/*
+gives index info of:
+--------------------
+Table test, 
+Non_unique 1, 
+Key_name a, 
+Seq_in_index 1, 
+Column_name a, 
+Collation A, 
+Cardinality 3, 
+Sub_part NULL, 
+Packed NULL, 
+Null YES, 
+Index_type BTREE
+
+*/
+
+
+-- create on combination of indexes
+-- 1 index that operates on the a and b column
+-- name the index as "ab"
+-- INDEX keyword with (column to index, column to index)
+--     INDEX(a, b)
+-- KeyName w/b called "ab"
+
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+    id INTEGER,
+    a VARCHAR(255),
+    b VARCHAR(255),
+    INDEX ab (a, b)    
+);
+
+/*
+gives index info of:
+--------------------
+Table test, test
+Non_unique 1, 1
+Key_name a, a
+Seq_in_index 1, 2 
+Column_name a, b 
+Collation A, A
+Cardinality 3, 3 
+Sub_part NULL, NULL
+Packed NULL, NULL
+Null YES, YES
+Index_type BTREE, BTREE
+
+*/
+
+
+DROP INDEX ab ON test;
+
+-- shows table structure with No Key
+DESCRIBE test;
+
+SHOW INDEXES FROM test;
+Or
+SHOW INDEX FROM test;
+
+
+DROP INDEX a ON test;
+
+DROP TABLE IF EXISTS test;
+
+
+
+
+-- 04 constraints
+-- database: scratch
+
+-- As you're defining your table you may want to define specific rules and behaviors 
+-- for some of your columns. 
+-- This is done by using constraints.
+
+-- drop table if it exists
+DROP TABLE IF EXISTS test;
+
+-- create the table
+CREATE TABLE test (
+    a INTEGER,
+    b VARCHAR(255)
+);
+
+-- insert a row
+-- uses NULL value when No default value is specified
+INSERT INTO TEST ( b ) VALUES ( 'one' );
+
+-- show table structure
+DESCRIBE test;
+
+-- show table data
+SELECT * FROM test;
+
+
+-- disallow NULL values, add a NOT NULL constraint
+/*
+For Describe, Null column, goes from YES to "NO" 
+Because there's no Default value specified, 
+the Default value is NULL 
+it gives a "0" for the row 	
+	because that's the closest that the database engine can do. 
+Other database systems handle that situation differently, but this is what MySQL does with that. 
+When you have NOT NULL for an integer, and you do not define a default value. You get a ZERO, 0 
+*/
+CREATE TABLE test (
+    a INTEGER NOT NULL,
+    b VARCHAR(255)
+);
+
+/*
+define a default value
+   DEFAULT 47
+   Describe has "47" under Default
+  "47" for row 
+constraint is called the unique constraint. 
+	UNIQUE for the b column.
+
+For Describe,
+Under KEY column shows UNIque 
+
+Show Index From,
+	it's created an index so that it can enforce that uniqueness.
+Non_unique column shows 0
+
+If Insert the same row a few more times,
+ 	get an integrity constraint violation, 
+		duplicate entry one for key b, 
+		because this index is set up as UNIQUE. 
+*/
+
+CREATE TABLE test (
+    a INTEGER NOT NULL DEFAULT 47,
+    b VARCHAR(255) UNIQUE
+);
+
+
+-- gives "Integrity constraint violation: 
+-- 	1048 Column 'a' cannot be null"
+
+-- put the insert back w/o the value
+-- MYSQL treats NULL as a special case. 
+-- It is Not a value; absence of value
+-- adding multiple NULLs to this column 
+--	does Not count as an integrity constraint violation.
+
+INSERT INTO TEST ( b ) VALUES ( NULL );
+SHOW INDEX FROM test;
+
+/*
+Can have several nulls because NULL is not a value. 
+NULL is the absence of value. 
+
+To actually prevent that from happening, 
+	use NOT NULL as an additional constraint. 
+
+Insert a row with NULL gives 
+	"Integrity constraint violation: 1048 column 'b' cannot be null" 
+
+And we don't have those nulls at all.
+*/
+
+CREATE TABLE test (
+    a INTEGER NOT NULL DEFAULT 47,
+    b VARCHAR(255) UNIQUE NOT NULL
+);
+
+-- constraints create rules governing the behaviors of columns in your tables. 
+-- MySQL supports several different kinds of constraints and
+
+DROP TABLE IF EXISTS test;
+
+
+
+-- 05 AUTO_INCREMENT
+-- database: scratch
+
+-- An ID column, is a column that's used as a unique identifier 
+-- 	for each row in a table. 
+-- It's commonly used in relational databases for connecting one table to another. 
+
+
+DROP TABLE IF EXISTS test;
+
+-- table with 3 columns
+CREATE TABLE test (
+    id INTEGER,
+    a VARCHAR(255),
+    b VARCHAR(255)
+);
+
+-- insert 3 rows of data
+INSERT INTO TEST ( id, a, b ) VALUES ( 1, 'one', 'two' );
+INSERT INTO TEST ( id, a, b ) VALUES ( 2, 'two', 'three' );
+INSERT INTO TEST ( id, a, b ) VALUES ( 3, 'three', 'four' );
+
+-- show data
+SELECT * FROM test;
+
+-- show table structure
+DESCRIBE test;
+
+
+SHOW TABLE STATUS like 'test';
+
+SHOW CREATE TABLE test;
+
+-- not give results 
+SHOW INDEXES FROM test;
+
+
+
+
+/*
+PRIMARY KEY has both NOT NULL and UNIQUE; index named PRIMARY
+	only 1 PRIMARY key per table
+
+ in SHOW CREATE TABLE, 
+	shows our create table 
+		as having a NON_NULL constraint 
+		and a separate PRIMARY KEY index. 
+ in SHOW INDEXES, 
+	have a key name of PRIMARY.
+
+with this PRIMARY key here. 
+	nulls are not allowed 
+	and our index says, 
+		non_unique is 0
+	 which means that it's constrained to unique keys. So if, I try to insert a d
+
+If insert Twice:
+	INSERT INTO TEST ( a, b ) VALUES ( 'three', 'four' );
+Get "Integrity constraint violation: 1062 Duplicate entry '3' for key 'PRIMARY' "
+ 
+
+primary key gives us those requirement for an id field. 
+	Current versions of MySQL do Not require that the id column uses the PRIMARY key constraint. 
+	Earlier versions of mysql Did require that. 
+
+In most cases, an id column fits the definition of a PRIMARY key. 
+
+Because, the id column requires that every value is unique, MySQL provides 
+	a feature that will automatically generate sequential values for the column. 
+
+	AUTO_INCREMENT PRIMARY KEY
+
+DESCRIBE table's Extra column has
+	"auto_increment" 
+	Type is "int(11)"
+
+SHOW TABLES STATUS has 4 in Auto_increment column
+	
+*/
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+    id INTEGER AUTO_INCREMENT PRIMARY KEY,
+    a VARCHAR(255),
+    b VARCHAR(255)
+);
+
+
+/*
+Or use "SERIAL" as substitute for "INTEGER AUTO_INCREMENT PRIMARY KEY"
+
+In DESCRIBE TABLE, the Type for
+	"SERIAL"
+		"bigint(20) unsigned" - maximum amount of numbers for that column
+	
+	"INTEGER AUTO_INCREMENT PRIMARY KEY"
+		"int(11)" 
+
+In practice, in an application where you might be concerned with the extra storage 	need the maximum size of "bigint(20) unsigned" anyway. 
+
+According to the MySQL manual, SERIAL an alias for
+	"BIGINT, UNSIGNED, NOT NULL, AUTO_INCREMENT, UNIQUE"
+
+SERIAL was added in MySQL 4.1; Not available in all the older versions. 
+
+Most people still use "INTEGER PRIMARY KEY". 
+
+*/	
+DROP TABLE IF EXISTS test;
+CREATE TABLE test (
+    id SERIAL,
+    a VARCHAR(255),
+    b VARCHAR(255)
+); 
+
+-- id values and "id" not there
+-- 	Not insert anything in id column
+--	still get the sequential values - automatically generated
+INSERT INTO TEST ( a, b ) VALUES ( 'one', 'two' );
+INSERT INTO TEST ( a, b ) VALUES ( 'two', 'three' );
+INSERT INTO TEST ( a, b ) VALUES ( 'three', 'four' );
+
+
+SELECT * FROM test;
+
+DESCRIBE test;
+
+SHOW TABLE STATUS like 'test';
+
+SHOW CREATE TABLE test;
+
+SHOW INDEXES FROM test;
+
+
+/*
+Special function LAST_INSERT_ID();
+	to know the ID column for the last inserted row.
+		when using an automatically generated ID, 
+	done right After the inserts to know 
+		"what is the column id of the last row" for some app specific purpose
+
+Responds with the last row in the table:
+	LAST_INSERT_ID() 3
+*/
+SELECT LAST_INSERT_ID();
+
+
+
+/*
+NOTE: With ID serial. 
+	CREATE TABLE shows the ID as "bigint(20), unsigned, not null, auto increment" 		with the unique key ID 
+		the key is named ID Not named PRIMARY 
+			because Not using the PRIMARY key constraint. 
+*/
+
+
+DROP TABLE IF EXISTS test;
+
+
+
+-- 06 Using FOREIGN KEY constraints
+-- database: scratch
+
+/*
+In a relational data base, 
+	common to have one table refer to another table by its PRIMARY key. 
+
+	Problems can arise if the reference points to a key that Does Not exist. 
+	
+	The FOREIGN KEY constraint is designed to prevent this from happening.
+*/
+
+-- 3 tables
+DROP TABLE IF EXISTS lend;
+DROP TABLE IF EXISTS client;
+DROP TABLE IF EXISTS book;
+
+-- client table
+CREATE TABLE client (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- 3 clients
+INSERT INTO client ( name ) VALUES ( 'Freddy' );
+INSERT INTO client ( name ) VALUES ( 'Karen' );
+INSERT INTO client ( name ) VALUES ( 'Harry' );
+SELECT * FROM client;
+
+
+-- book table
+CREATE TABLE book (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title TEXT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- 3 books
+INSERT INTO book ( title ) VALUES ( 'The Moon is a Harsh Mistress' );
+INSERT INTO book ( title ) VALUES ( 'Rendezvous with Rama' );
+INSERT INTO book ( title ) VALUES ( 'A Game of Thrones' );
+SELECT * FROM book;
+
+
+/*
+try to DELETE a book 'Rendezvous with Rama'
+disallowed - will get 
+Integrity constraint violation: 1451 Cannot delete or update row: 
+		a foreign key constraint fails ('scratch', 'lend', CONSTRAINT  			'lend_ibfk_2'FOREIGN KEY('b-id') REFERENCES 'book'('id')) 
+*/
+DELETE FROM book WHERE id = 2;
+
+
+-- lend table - a junction table
+--	TIMESTAMP when lend happens
+-- c_id for client table
+-- b_id for book table
+CREATE TABLE lend (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  stamp TIMESTAMP, 
+  c_id INT,
+  b_id INT
+);
+
+INSERT INTO lend ( c_id, b_id ) VALUES ( 1, 1 );
+INSERT INTO lend ( c_id, b_id ) VALUES ( 1, 2 );
+INSERT INTO lend ( c_id, b_id ) VALUES ( 3, 3 );
+
+-- s/ NOT be allowed client 2, is lent book 5
+-- book 5 does Not exist!
+INSERT INTO lend ( c_id, b_id ) VALUES ( 2, 5 );
+
+
+SELECT * FROM lend;
+
+
+/*
+join query to look at the entire picture
+	with LEFT joins
+ brings info from client and book tables
+	lend id, lend stamp, client name, book title
+
+client Karen borrowed book 5 NULL, which does Not exist
+*/
+SELECT l.id, l.stamp, c.name, b.title
+  FROM lend AS l
+  LEFT JOIN client AS c ON l.c_id = c.id
+  LEFT JOIN book AS b ON l.b_id = b.id
+;
+
+
+/*
+ lend table with FOREIGN KEY constraint
+ FOREIGN KEYs - to prevent lending a nonExisting book
+ 	FOREIGN KEY (this_table_column) REFERENCES foreign_table(column)
+ 		will create 
+	Integrity constraint violation: 1452 Cannot add or update a child row: 
+		a foreign key constraint fails ('scratch', 'lend', CONSTRAINT  			'lend_ibfk_2'FOREIGN KEY('b-id') REFERENCES 'book'('id'))
+
+I.e. row with Karen Not borrowing a non-existing book 
+*/
+
+CREATE TABLE lend (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  stamp TIMESTAMP, 
+  c_id INT,
+  b_id INT,
+  FOREIGN KEY (c_id) REFERENCES client(id),
+  FOREIGN KEY (b_id) REFERENCES book(id)
+);
+
+
+-- drop tables - has to be in a specific order
+-- else gives foreign key constraint
+DROP TABLE IF EXISTS lend;
+DROP TABLE IF EXISTS client;
+DROP TABLE IF EXISTS book;
+
+
+
+
+-- 07 ALTER TABLE
+-- database: scratch
+
+-- need to change the definition of a table 
+--	After it's already been defined and populated with data. 
+-- with ALTER TABLE statement 
+
+-- new table
+CREATE TABLE test ( a VARCHAR(10), b VARCHAR(10), c VARCHAR(10) );
+
+-- insert rows with data
+INSERT INTO test VALUES ( 'one', 'two', 'three');
+INSERT INTO test VALUES ( 'two', 'three', 'four');
+INSERT INTO test VALUES ( 'three', 'four', 'five');
+
+-- view the row data
+SELECT * FROM test;
+
+
+
+-- add column "d" with NULL values
+-- 	ALTER TABLE test ADD column definition;
+ALTER TABLE test ADD d VARCHAR(10);
+
+-- add column "d"
+ALTER TABLE test ADD d INT;
+
+
+/*
+Be very careful removing columns obviously from a live database. 
+	the data is Permanently Lost! 
+	It can Not be recovered. 
+
+Any code that may depend upon columns that you're removing, 
+	needs to be modified; 
+		not referencing columns that are no longer there. 
+
+DROP column 'd' an 'b' 
+	and data in it
+data Will Be deleted!
+*/
+
+ALTER TABLE test DROP d;
+ALTER TABLE test DROP b;
+
+
+-- add column in particular position - after column 'a'
+--	with NULL's
+--	default is after last column
+ALTER TABLE test ADD bb VARCHAR(10) AFTER a;
+
+ALTER TABLE test ADD aa INT FIRST;
+
+-- add default data 'panda' with
+--	DEFAULT 'panda'
+ALTER TABLE test ADD d VARCHAR(10) DEFAULT 'panda';
+
+
+-- define auto incrementing columns. 
+--	the first column, FIRST
+--	SERIAL auto incrementing column
+ALTER TABLE test ADD id SERIAL FIRST;
+
+
+-- full definition of your table schema 
+SHOW CREATE TABLE test;
+
+
+DROP TABLE test;
