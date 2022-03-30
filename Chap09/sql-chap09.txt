@@ -1,0 +1,249 @@
+
+/*
+Stored routines (functions and procedures) can be a valuable tool for 
+	improving the performance, 
+	maintainability and 
+	security 
+of your database systems. 
+
+
+A Stored Routine 
+	a set of SQL statements that are stored on the database server 
+	can be used by any client with permission to use them. 
+
+Benefits:
+	1 Database operations are normalized 
+		so various applications will operate uniformly, 
+			even when written in different languages 
+			and operating on different platforms. 
+
+	2 Stored routines are easy to maintain, 
+		they're all in one place rather than distributed among different applications. 
+
+	3 Traffic is reduced between the client and server, because data is processed on the server.
+
+	4 Security is enhanced by allowing clients to run with reduced permissions 
+		while still being able to perform necessary database operations. 
+
+
+Disadvantages. 
+	1 Migration to a different server platform can be difficult 
+		as stored routines tend to use a lot of platform-specific features and codes. 
+	
+	2 Stored procedures can be difficult to debug and maintain. 
+
+
+Two different kinds of stored routines.
+
+	1 Stored functions 
+		return a value; 
+		used in the context of an expression.
+		created with the CREATE FUNCTION statement. 
+		used as you would use a built-in function. 
+		are only available in a scalar context. 
+		Not available in an aggregate context. 
+
+	2 Stored procedures 
+		are called separately using the CALL statement 
+		may return result sets or set variables. 
+		created with the CREATE PROCEDURE statement. 
+		called with the CALL statement 
+		used like a complete query.
+		can return a result set like a SELECT statement 
+	or 	can be used with output parameters to return scalar values by reference. 
+
+*/
+
+
+
+-- 02 stored functions
+-- A stored function is defined with the CREATE FUNCTION statement
+-- database: album
+
+
+DROP FUNCTION IF EXISTS track_len;
+
+/*
+DETERMINISTIC
+	the function will always return the same value for the same input. 
+	helps the optimizer in MySQL to create more efficient code. 
+	The default is NOT DETERMINISTIC, 
+	if your code is going to Always return the same value for the same input
+
+Return CONCAT_WS concat with separator 
+	use a colon for separator 
+	starts with seconds DIV 60 - the minutes part
+	use LPAD - a string function that pads the left side of a string. 
+		have a pad with zeros to a fixed length of 2 
+			A leading zero, if it's just 1 digit second 
+			No leading zero, if it's 2 digit seconds 
+	use seconds MOD 60, which is just the seconds part without the minutes. 
+		the remainder after the division by 60.
+		it's two in length, and it pads with a zero. 
+*/
+
+-- time converted to a string
+-- only have to change it Once - here
+CREATE FUNCTION track_len(seconds INT)
+RETURNS VARCHAR(16) DETERMINISTIC
+    RETURN CONCAT_WS(':', seconds DIV 60, LPAD(seconds MOD 60, 2, '0' ));
+
+-- use the function
+-- minutes are Not padded; seconds Are padded
+SELECT title, track_len(duration) FROM track;
+
+-- title	track_len(duration)
+-- Stardust	5:08
+
+
+--  listing of all the tracks for all the albums in the database 
+--  have a JOIN query 
+--  using track_len function for the length column.
+--  stored functions are Not used in aggregate context. 
+--  can Not use this as an aggregate function. 
+SELECT a.artist AS artist,
+    a.title AS album,
+    t.title AS track,
+    t.track_number AS trackno,
+    track_len(t.duration) AS length
+  FROM track AS t
+  JOIN album AS a
+    ON a.id = t.album_id
+  ORDER BY artist, album, trackno
+;
+
+-- artist album	track trackno length
+
+
+-- can use stored functions with the result of an aggregate function.
+-- track_len is Not used in an aggregate context;
+-- the value from SUM Is an aggregate value
+SELECT a.artist AS artist,
+    a.title AS album,
+    track_len(SUM(duration)) AS length
+  FROM track AS t
+  JOIN album AS a
+    ON a.id = t.album_id
+  GROUP BY a.id
+  ORDER BY artist, album
+;
+
+-- 03 stored procedures
+-- CREATE PROCEDURE
+-- database: album
+
+-- simple procedure
+DROP PROCEDURE IF EXISTS list_albums;
+
+
+-- change delimiter to // 
+-- to send the entire block to the server
+-- else syntax error
+DELIMITER //
+CREATE PROCEDURE list_albums ()
+BEGIN
+    SELECT * FROM album;
+END
+//
+
+DELIMITER ;
+
+CALL list_albums();
+
+-- id title artist label released
+
+
+-- with parameter
+DROP PROCEDURE IF EXISTS list_albums;
+
+-- calls the track_len function
+-- has parameter a VARCHAR(255)
+-- 	called in WHERE a.artist LIKE a
+ 
+DELIMITER //
+CREATE PROCEDURE list_albums (a VARCHAR(255))
+  BEGIN
+    SELECT a.artist AS artist,
+        a.title AS album,
+        t.title AS track,
+        t.track_number AS trackno,
+        track_len(t.duration) AS length
+      FROM track AS t
+      JOIN album AS a
+        ON a.id = t.album_id
+      WHERE a.artist LIKE a
+      ORDER BY artist, album, trackno
+    ;
+  END //
+
+DELIMITER ;
+
+-- Call with a String as argument
+-- all tracts with artist Hendrix
+CALL list_albums('%hendrix%');
+ 
+
+
+-- with output parameter
+-- the function Is stored in the server
+DROP PROCEDURE IF EXISTS total_duration;
+
+-- could have used (IN a VARCHAR(255), OUT d VARCHAR(255))
+-- input parameter is "a"; output parameter is "d"
+--  I have a simple SELECT. 
+-- 	selecting all the tracks
+--	summing the duration of the tracks And that result INTO the "d" variable. 
+-- 		SELECT track_len(SUM(duration)) INTO d
+-- SubSELECT
+--	SELECT id FROM album WHERE artist LIKE a	
+
+DELIMITER //
+CREATE PROCEDURE total_duration (a VARCHAR(255), OUT d VARCHAR(255))
+  BEGIN
+    SELECT track_len(SUM(duration)) INTO d
+      FROM track
+      WHERE album_id IN (SELECT id FROM album WHERE artist LIKE a)
+    ;
+  END //
+
+DELIMITER ;
+
+
+/*
+CALL it with a = "%hendrix%" 
+	"%" is the wildcard  
+	"@dur" a global variable with an @ sign  
+	a global variable with an @ sign 
+	that global variable will be filled with that result from "d" 
+the procedure stores the output value in this "dur" variable 
+	by storing it in "d" inside of the procedure. 
+*/
+CALL total_duration('%hendrix%', @dur);
+
+
+SELECT @dur;
+
+-- dur
+-- 49:30
+
+
+ 
+-- %winter% for Johnny Winter 
+CALL total_duration('%winter%', @dur);
+
+SELECT @dur;
+
+-- dur
+-- 49:32
+
+
+DROP FUNCTION IF EXISTS track_len;
+DROP PROCEDURE IF EXISTS total_duration;
+DROP PROCEDURE IF EXISTS list_albums;
+
+/*
+stored procedures are used in a statement context 
+
+stored functions are used in an expression context. 
+*/
+
