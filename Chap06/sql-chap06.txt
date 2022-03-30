@@ -1,0 +1,129 @@
+-- 01 Database integrity
+--	maintaining DB integrity with transactions
+--	conforms to SQL std
+-- database: scratch
+
+
+/*
+Transactions are a valuable database tool.
+Using in them in MySQL is very simple. 
+This can be a valuable technique for
+maintaining the integrity of related tables in your database.
+
+This is what you can do programatically 
+in a program or a script you can execute some SQL 
+and if you find that you don't have everything 
+that you need to complete the transaction 
+you can simply rollback 
+and whatever statements you have executed 
+will not be committed to the database.
+
+This is how you can maintain the integrity of your database. 
+By making sure that related statements, related queries, 
+are all performed as a group 
+or rolled back if they cannot be performed as a group. 
+*/
+
+
+-- for inventory
+CREATE TABLE widgetInventory (
+  id SERIAL,
+  description VARCHAR(255),
+  onhand INTEGER NOT NULL
+);
+
+-- for sales
+CREATE TABLE widgetSales (
+  id SERIAL,
+  inv_id INTEGER,
+  quan INTEGER,
+  price INTEGER
+);
+
+INSERT INTO widgetInventory ( description, onhand ) VALUES ( 'rock', 25 );
+INSERT INTO widgetInventory ( description, onhand ) VALUES ( 'paper', 25 );
+INSERT INTO widgetInventory ( description, onhand ) VALUES ( 'scissors', 25 );
+
+SELECT * FROM widgetInventory;
+
+-- id description. Onhand
+-- 1  rock         25
+-- 2  paper        25
+-- 3  scissors     25
+
+
+-- the INSERT and UPDATE must execute successfully 
+-- Before COMMIT is done 
+START TRANSACTION;
+INSERT INTO widgetSales ( inv_id, quan, price ) VALUES ( 1, 5, 500 );
+-- subtracts 5 from onhand 
+UPDATE widgetInventory SET onhand = ( onhand - 5 ) WHERE id = 1;
+COMMIT;
+
+SELECT * FROM widgetInventory;
+-- id description. Onhand
+-- 1  rock         20
+-- 2  paper        25
+-- 3  scissors     25
+
+
+SELECT * FROM widgetSales;
+-- id inv_id quad price
+-- 1  1      5    500
+
+
+
+-- b/c of ROLLBACK - widgetInventory and widgetSales 
+-- Not changed At ALL.
+-- Not committed to storage
+START TRANSACTION;
+INSERT INTO widgetInventory ( description, onhand ) VALUES ( 'toy', 25 );
+ROLLBACK;
+SELECT * FROM widgetInventory;
+SELECT * FROM widgetSales;
+
+
+-- restore database
+DROP TABLE IF EXISTS widgetInventory;
+DROP TABLE IF EXISTS widgetSales;
+
+
+
+
+-- 02 Database performance
+-- database: scratch
+
+-- Transactions are also commonly used to increase performance. 
+-- If a long list of inserts or updates are 
+--	performed as a transactional unit, 
+-- they can perform much faster.
+
+
+CREATE TABLE test ( id SERIAL, data VARCHAR(256) );
+
+-- copy / paste 1,000 of these ...
+INSERT INTO test ( data ) VALUES ( 'this is a good sized line of text.' );
+
+
+-- count the rows in the table
+-- 543.27 milliseconds, 375.90 milliseconds, 336.76 milliseconds, 332.55 milliseconds
+
+SELECT COUNT(*) FROM test;
+-- COUNT(*)
+-- 1000
+
+
+-- speed decreases significantly
+-- 287.38 milliseconds; 70.92 milliseconds; 
+--  72.18 milliseconds; 88.01 milliseconds; 68.62 milliseconds
+-- put this before the 1,000 INSERT statements
+START TRANSACTION;
+-- copy / paste 1,000 of these ...
+INSERT INTO test ( data ) VALUES ( 'this is a good sized line of text.' );
+-- put this after the 1,000 INSERT statements
+COMMIT;
+
+
+-- restore database
+DROP TABLE test;
+
