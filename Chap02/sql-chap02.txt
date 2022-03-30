@@ -1,0 +1,435 @@
+-- 02 rows
+-- database: world
+
+SELECT * FROM Album; -- this is a line comment
+
+/*
+A multi-line 
+Comment
+*/
+
+-- SELECT * FROM Table_Name WHERE condition;
+SELECT * FROM Album WHERE Label = 'Columbia';
+
+-- COUNT function
+SELECT COUNT(*) FROM Album WHERE Label = 'Columbia';
+
+
+-- Expressions 
+-- Population / 1000000
+-- Population >= 1000000
+
+SELECT Name, Population / 1000000 AS PopMM
+	FROM Country
+	WHERE Population >= 1000000
+	ORDER BY Population DESC;
+
+
+
+
+SELECT 'Hello, World'; 
+SELECT 1 + 2;
+
+-- Selecting rows
+
+-- All rows from Country table
+SELECT * FROM Country; 
+
+-- alphabetical order by name of country
+SELECT * FROM Country ORDER BY Name;
+
+-- 2 columns Name, LifeExpectancy
+SELECT Name, LifeExpectancy FROM Country ORDER BY Name;
+
+-- 2 columns Name, LifeExpectancy; alt column heading name 'Life Expectancy'  
+SELECT Name, LifeExpectancy AS 'Life Expectancy' FROM Country ORDER BY Name;
+
+-- Count of All Rows in Country table i.e. 239
+SELECT COUNT(*) FROM Country;
+
+-- limit nor of rows to 5 with LIMIT statement
+SELECT * FROM Country ORDER BY Name LIMIT 5;
+
+-- LIMIT 5 OFFSET 5; return 5 rows After 5 records
+-- LIMIT must be After OFFSET 
+SELECT * FROM Country ORDER BY Name LIMIT 5 OFFSET 5;
+
+
+-- 03 columns
+-- database: world
+
+-- All 239 rows and All columns the asterisks *
+SELECT * FROM Country ORDER BY Code;
+
+-- specific columns Name, Code, Region, Population
+SELECT Name, Code, Region, Population FROM Country ORDER BY Code;
+
+
+-- Use "AS" clause all the time - less ambiguous; less prone to error
+-- AS keyword alt. column names; code is More readable
+SELECT Name AS Country, Code AS ISO, Region, Population AS Pop FROM Country ORDER BY Code;
+
+-- Same result without the "AS" to get alt. column names; Less readable
+SELECT Name Country, Code ISO, Region, Population Pop FROM Country ORDER BY Code;
+
+SELECT Name AS Country, Code AS ISO, Region, Population / 1000 AS 'Pop (1000s)' FROM Country ORDER BY Code;
+
+
+-- 04 ORDER BY
+-- database: world
+
+-- names are Not in Order
+SELECT Name FROM Country;
+
+-- alphabetical order by Name (default ASCending)
+SELECT Name FROM Country ORDER BY Name;
+
+-- alphabetical order by Name - DESCending order
+SELECT Name FROM Country ORDER BY Name DESC;
+
+-- ASC keyword for Ascending
+SELECT Name FROM Country ORDER BY Name ASC;
+
+-- nations in alphabetical order within each continent
+-- sort by Continent and Name within the continent
+SELECT Name, Continent FROM Country ORDER BY Continent, Name;
+
+
+-- sort Continent DESCending, 
+-- Region and Name ASCending
+SELECT Name, Continent, Region FROM Country ORDER BY Continent DESC, Region, Name;
+
+
+
+-- 05 WHERE clause takes a Boolean expression
+-- database: world
+
+-- get all 239 rows
+SELECT * FROM Country;
+
+-- population less 100,000
+SELECT Name, Continent, Population FROM Country WHERE Population < 100000 ORDER BY Population DESC;
+
+
+-- nations with NULL - unknown populations 
+-- in Antartica, Oceania, 
+-- 1 in Africa British Indian Ocean Territory)
+-- OR operator - when either is True
+SELECT Name, Continent, Population 
+FROM Country 
+WHERE Population < 100000 OR Population IS NULL 
+ORDER BY Population DESC;
+
+
+-- AND operator - both expressions have to be True 
+SELECT Name, Continent, Population 
+FROM Country 
+WHERE Population < 100000 AND Continent = 'Oceania' 
+ORDER BY Population DESC;
+
+
+
+-- 06 LIKE and IN
+-- WHERE clause 
+-- database: world
+
+-- LIKE operator used to match particular values or patterns in a column
+-- word "island" is somewhere in the name; 18 matches
+-- % sign is a wildcard in this context
+SELECT Name, Continent, Population FROM Country WHERE Name LIKE '%island%' ORDER BY Name;
+
+-- only "island" at the end; no "%" at the end; only 3 matches
+SELECT Name, Continent, Population FROM Country WHERE Name LIKE '%island' ORDER BY Name;
+
+-- "island" is at the beginning; NO matches
+SELECT Name, Continent, Population FROM Country WHERE Name LIKE 'island%' ORDER BY Name;
+
+-- match a single character; any country with "a" in the 2nd letter of its name; 
+-- 57 matches
+SELECT Name, Continent, Population FROM Country WHERE Name LIKE '_a%' ORDER BY Name;
+
+-- IN operator - match values in the list ( 'Europe', 'Asia' )
+-- get all nations in Europe or Asia
+SELECT Name, Continent, Population FROM Country WHERE Continent IN ( 'Europe', 'Asia' );
+
+
+
+
+-- 07 REGEXP - REGular EXPressions
+-- database: world
+
+-- REGular EXPressions - a pattern-matching language
+
+-- match a single character; any country with "a" in the 2nd letter of its name; 
+SELECT Name, Continent, Population FROM Country WHERE Name LIKE '_a%' ORDER BY Name;
+
+
+-- match a single character; 
+-- any country with "a", "b", "c", or "d" 
+-- in the 2nd letter of its name; 
+SELECT Name, Continent, Population FROM Country WHERE
+  Name LIKE '_a%' OR
+  Name LIKE '_b%' OR
+  Name LIKE '_c%' OR
+  Name LIKE '_d%' OR
+  Name LIKE '_e%'
+  ORDER BY Name;
+
+
+-- carot ^ anchors the beg of the string
+-- period . represents any character for the 1st letter
+-- [a-e] represents 2nd character - any character between a and e
+-- dot . represents any character for the 3rd letter and beyond
+-- dot . and asterisks * means 0 or more of those
+-- $ sign anchors the end of the string
+
+SELECT Name, Continent, Population 
+FROM Country 
+WHERE Name REGEXP '^.[a-e].*$' 
+ORDER BY Name;
+
+
+-- any country that ends with "g" I.e. Hong Kong; Luxembourg
+-- a period . Matches any character in that position
+SELECT Name, Continent, Population 
+FROM Country 
+WHERE Name REGEXP '.*g$' 
+ORDER BY Name;
+
+-- match "o" any character and another "o"
+-- I.e. Cocos, Colombia, Morocco, Solomon Islands
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP 'o.o' ORDER BY Name;
+
+
+-- plus sign + matches 1 or more of a character
+-- 1 or more "c's" between 2 o's
+-- I.e. Cocos; Morocco
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP 'oc+o' ORDER BY Name;
+
+
+-- asterisks * match zero or more of a character
+-- 1 or more "o's" next to each other
+-- or with "c's" in between them
+-- I.e. Cameroon; Cocos; Cook; Morocco
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP 'oc*o' ORDER BY Name;
+
+-- more than 1 "c"
+-- I.e. Cameroon; Cocos; Cook
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP 'oc?o' ORDER BY Name;
+
+
+-- vowel as the 2nd character
+-- match any 1 character in the class [aeiou]
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP '^.[aeiou].*' ORDER BY Name;
+
+
+-- vowel as the 2nd character
+-- match 1 or more characters in the class [aeiou]
+-- "+" character is 1 or more
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP '^.[aeiou]+.*' ORDER BY Name;
+
+-- vowel as the 2nd character
+-- match 1 or more characters in the class [aeiou]
+-- "?" character is 0 or 1
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP '^.[aeiou]?.*' ORDER BY Name;
+
+-- vowel as the 2nd character
+-- match 1 or more characters in the class [aeiou]
+-- "*" character is 0 or more
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP '^.[aeiou]*.*' ORDER BY Name;
+
+
+-- range of letters [a-e]
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP '^.[a-e].*' ORDER BY Name;
+
+
+SELECT Name, Continent, Population FROM Country WHERE Name REGEXP '^.[^a-e].*' ORDER BY Name;
+
+
+-- predefined class [:space:]
+-- match any white space I.e. tab, newline etc 
+SELECT Name, Continent, Population 
+FROM Country 
+WHERE Name REGEXP '[[:space:]]' 
+ORDER BY Name;
+
+/*
+Predefined class
+alnum 	alphanumeric characters
+alpha 	alphabetic characters
+blank 	whitespace characters
+cntrl 	control characters
+digit	digit characters
+graph	graphic characters
+lower	lowercase alphabetic
+print 	graphic or space characters
+punct	punctuation characters
+space 	space, tab, newline
+upper	uppercase alphabetic
+xdigit	hexadecimal digit characters
+
+http://dev.mysql.com/doc/refman/5.6/en/regexp.html
+*/
+
+
+-- RLIKE works exactly the same; legacy purposes
+-- 	for compatibility with MSQL
+SELECT Name, Continent, Population FROM Country WHERE Name RLIKE '[[:space:]]' ORDER BY Name;
+
+
+
+-- 08 INSERT INTO - add row(s) into a DB
+-- database: scratch
+
+
+CREATE TABLE test ( a INT, b TEXT, c TEXT );
+INSERT INTO test VALUES ( 1, 'This', 'Right here!' ); 
+SELECT * FROM test;
+
+-- table displayed
+-- a 	b 	c
+-- 1  This Right here
+
+
+-- specify the columns and the data for those columns
+-- missing values is NULL
+INSERT INTO test ( b, c ) VALUES ( 'That', 'Over there!' ); 
+SELECT * FROM test;
+
+-- table displayed
+-- a 	b 	c
+-- 1  	This 	Right here
+-- NULL That 	Over there!
+
+
+
+-- use SELECT instead of VALUES clause
+-- values from "item" table
+-- store temp or persistent values from a query
+INSERT INTO test ( a, b, c ) SELECT id, name, description FROM item;
+
+
+
+
+-- 09 UPDATE - change existing data
+-- database: scratch
+
+SELECT * FROM test;
+
+SELECT * FROM test 
+WHERE a = 2;
+
+
+-- SET the column
+-- WHERE to select the row
+
+UPDATE test SET c = 'Extra funny.' WHERE a = 2;
+
+UPDATE test SET c = 'Even funnier.' WHERE a = 2;
+
+-- NULL keyword - set no value
+UPDATE test SET c = NULL WHERE a = 2;
+
+
+
+
+-- 10 DELETE FROM - remove rows from a table
+-- database: scratch
+
+SELECT * FROM test;
+
+-- delete row with a = 2
+DELETE FROM test WHERE a = 2;
+
+-- delete row with a = 1
+DELETE FROM test WHERE a = 1;
+
+-- All rows will be deleted
+DELETE FROM test;
+
+-- delete the table
+DROP TABLE test;
+
+
+
+
+-- 11 literal strings
+-- database: [none]
+ 
+-- use literals when add or update rows to a table for new values
+-- difference between MYSQL and SQL standard
+
+-- std SQL
+SELECT 'hello, world';
+
+
+-- 3 separate strings concatenated; 
+-- separated by spaces
+-- only MySQL Not std SQL
+SELECT 'hello' ', ' 'world';
+
+
+-- using double quotes
+-- only MySQL not std SQL
+-- USE single quotes
+SELECT "hello, world";
+
+
+-- for world to have double quotes 
+-- i.e. "world"
+SELECT 'hello, "world"';
+
+-- to have single quotes
+-- 2 single quotes right next to each other
+-- 'world'
+SELECT 'hello, ''world''';
+
+
+-- use backslash
+-- Not std SQL
+SELECT 'hello, \'world\'';
+
+
+
+-- 12 NULL - no value
+-- IS NULL
+-- IS NOT NULL
+-- database: scratch
+
+CREATE TABLE test ( a INT, b TEXT, c TEXT );
+INSERT INTO test ( b, c ) VALUES ( 'This', 'That' ); 
+SELECT * FROM test;
+
+-- displays
+-- a	b	c
+-- NULL This 	That
+
+
+-- will No results
+-- NULL is Not a value; can't satisfy the = expression
+SELECT * FROM test WHERE a = NULL;
+
+
+-- test for NULL, use IS NULL
+SELECT * FROM test WHERE a IS NULL;
+
+-- test for NOT NULL, use IS NOT NULL
+SELECT * FROM test WHERE a IS NOT NULL;
+
+-- delete all the rows
+DELETE FROM test;
+
+
+INSERT INTO test ( a, b, c ) VALUES ( 0, NULL, '' );
+SELECT * FROM test;
+SELECT * FROM test WHERE b IS NULL;
+
+-- no rows
+SELECT * FROM test WHERE b = '';
+
+-- no rows
+SELECT * FROM test WHERE c = '';
+
+-- get the row
+SELECT * FROM test WHERE c IS NULL;
+
